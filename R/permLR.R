@@ -33,7 +33,7 @@ permLR <- function(B, formula, data, type="exact") {
     trt <- data$trt
 
     ## calculate logrank scores
-    x <- logrank_trafo(data$time, data$status)
+    x <- logrank_trafo(matrix(c(data$time, data$status), ncol=2, nrow=nrow(data)))
 
     ## centered logrank statistic
     obsS <- sum(x * trt)
@@ -72,238 +72,50 @@ shuffleBlock <- function(block, strata=0) {
     }))
 }
 
-#' impute.IPT
-#'
-#' Impute data according to IPT method. Output is supposed to be passed to permute.IPT
-#'
-#' @param data matrix as returned by as.matrix(generateData(param))
-#'
-#' @return matrix containing imputed survival and censoring times (columns 1 and 2), and original treatment indicator (column 3)
-#'
-impute.IPT <- function(data) {
-    ## KM estimator from pooled data
-    time <- data[,1]
-    status <- data[,2]
-
-    g0 <- data[,3] == 0
-    g1 <- data[,3] == 1
-    tmax <- max(time)
-
-    ## split data set by treatment groups
-    data1 <- data[g0,]
-    data2 <- data[g1,]
-
-    ## extract variables because indexing is not allowed in Surv function
-    time1 <- data1[,1]
-    status1 <- data1[,2]
-
-    time2 <- data2[,1]
-    status2 <- data2[,2]
-
-    ## pooled KM
-    fitS <- survfit(Surv(time, status) ~ 1)
-
-    ## KM for censoring time in each group
-    fit1 <- survfit(Surv(time1, 1-status1) ~ 1)
-    fit2 <- survfit(Surv(time2, 1-status2) ~ 1)
-
-    T <- time
-    C <- time
-    delta <- as.logical(status)
-    Tdelta <- delta
-
-    ## only impute survival times for censored obs.
-    if(!all(delta)) {
-        tmp <- sampleFromCondKM(T[!delta], fitS, tmax, 1)
-        T[!delta] <- tmp[1,]
-        Tdelta[!delta] <- tmp[2,]
-    }
-
-    ## only impute censoring times for uncensored obs.
-    v1 <- delta & g0
-    v2 <- delta & g1
-    if(any(v1)) C[v1] <- sampleFromCondKM(C[v1], fit1, tmax, 0)[1,]
-    if(any(v2)) C[v2] <- sampleFromCondKM(C[v2], fit2, tmax, 0)[1,]
-
-    matrix(c(T, C, data[,3], Tdelta), nrow=nrow(data), ncol=4)
-}
-
-#' impute.IPZ
-#'
-#' Impute data according to IPZ method. Output is supposed to be passed to permute.IPZ
-#'
-#' @param data matrix as returned by as.matrix(generateData(param))
-#'
-#' @return original data with 4 new columns (V1 and V2) containing the imputed observations
-#'
-impute.IPZ <- function(data) {
-    time <- data[,1]
-    status <- data[,2]
-
-    tmax <- max(time)
-    
-    ## KM estimator from pooled data
-    fitS <- survfit(Surv(time, status) ~ 1)
-
-    ## split data set by treatment groups
-    data1 <- data[data[,3] == 0,]
-    data2 <- data[data[,3] == 1,]
-
-    ## extract variable because indexing is not allowed in Surv function
-    time1 <- data1[,1]
-    status1 <- data1[,2]
-
-    time2 <- data2[,1]
-    status2 <- data2[,2]
-
-    ## KM for censoring time in each group
-    fit0 <- survfit(Surv(time1, 1-status1) ~ 1)
-    fit1 <- survfit(Surv(time2, 1-status2) ~ 1)
-
-    f <- function(work.data, trt.level, fitS, fitK) {
-        U <- work.data[,1]
-        delta <- as.logical(work.data[,2])
-        Tdelta <- delta
-        T <- U
-
-        if(!all(delta)) {
-            tmp <- sampleFromCondKM(U[!delta], fitS, tmax, 1)
-            T[!delta] <- tmp[1,]
-            Tdelta[!delta] <- tmp[2,]
-        }
-
-        n <- length(U)
-
-        C <- sampleFromKM(n, fitK, 0, tmax, 0)[1,]
-
-        sel1 <- delta & (U <= C)
-        sel2 <- delta & (U > C)
-        sel3 <- !delta & (U > C)
-        sel4 <- !delta & (T <= C)
-        sel5 <- !delta & (U < C) & (C < T)
-
-        time <- data[,1]
-        status <- data[,2]
-
-        time1 <- numeric(n)
-        status1 <- logical(n)
-
-        if(any(sel1)) {
-            time1[sel1] <- U[sel1]
-            status1[sel1] <- TRUE
-        }
-
-        s <- sel2 | sel3 | sel5
-        if(any(s)) {
-            time1[s] <- C[s]
-            status1[s] <- FALSE
-        }
-
-        if(any(sel4)) {
-            time1[sel4] <- T[sel4]
-            status1[sel4] <- Tdelta[sel4] ##TRUE
-        }
-
-        time[data[,3] == trt.level] <- time1
-        status[data[,3] == trt.level] <- status1
-
-        matrix(c(time, status), nrow=length(time), ncol=2)
-    }
-
-    V1 <- f(data2, 1, fitS, fit0)
-
-    V2 <- f(data1, 0, fitS, fit1)
-
-    ## columns: time, status, trt, entry, id, block, rnd.block, time1, status1, time2, status2
-    cbind(data[,1:3], V1, V2)
-}
-
-#' permute.IPT
-#'
-#' Permute survival times after imputation (IPT)
-#'
-#' @param data matrix as returned by impute.IPT
-#' @param pp vector of permuted indices
-#' @param index not used
-#'
-#' @return matrix with time, status, trt columns
-#'
-permute.IPT <- function(data, pp, index=TRUE) {
-    pT <- data[pp, 1]
-    tmp <- matrix(c(pmin(pT, data[,2]), (pT <= data[,2]), data[,3]), nrow=nrow(data), ncol=3)
-
-    tmp[,2] <- (pT <= data[,2]) * data[pp, 4]
-
-    ## same rule as in permImpHeinze
-    ## eq <- pT == data[,2]
-    ## if(any(eq)) tmp[eq, 2] <- data[pp, 4][eq]
-
-    tmp
-}
-
-#' permute.IPZ
-#'
-#' Permute treatment assignment after imputation (IPZ)
-#'
-#' @param data matrix as returned by impute.IPT
-#' @param pZ vector of permuted indices if index is TRUE, else binary vector of treatment assignments
-#' @param index indicates if pZ is a vector of indices or a binary vector of treatment assignments
-#'
-#' @return matrix with time, status, Z columns
-#'
-permute.IPZ <- function(data, pZ, index=FALSE) {
-    Z <- data[,3]
-    if(index) pZ <- data[pZ, 3]
-
-    time <- data[,1]
-    status <- data[,2]
-
-    if(length(pZ) != length(Z)) browser()
-    
-    a <- pZ > Z
-    b <- pZ < Z
-    ## pZ == Z: keep as is
-    
-    time[a] <- data[a, 6]
-    status[a] <- data[a, 7]
-
-    time[b] <- data[b, 4]
-    status[b] <- data[b, 5]
-    
-    matrix(c(time, status, pZ), nrow=nrow(data), ncol=3)
-}
-
 #' createPermGS
 #' 
 #' Create permGS object representing a permutational group-sequential trial.
 #'
 #' @param B number of random permutations
 #' @param restricted if TRUE only permute within strata
-#' @param IP.method imputation/permuation method IPZ, IPT or none (default: IPZ)
+#' @param method imputation/permuation method IPZ, IPT, Heinze or none (default: IPZ)
 #' @param imputeData user-supplied imputation function (ignored if IP.method is given)
 #' @param permuteData user-supplied permutation function (ignore if IP.method is given)
+#' @param type logrank weights to be used with coin::logrank_trafo
 #' @return object of class permGS
+#'
 #' @examples
 #' ## standard permutation test (no imputation, free permutations)
 #' x <- createPermGS(1000, FALSE, "none")
 #' ## imputation using IPT method, restricted permutations
 #' y <- createPermGS(1000, TRUE, "IPT")
 #' @export
-createPermGS <- function(B=1000, restricted=TRUE, IP.method="IPZ", imputeData=NULL, permuteData=NULL) {
-    if(!is.null(IP.method)) {
-        if(IP.method == "IPT") {
+createPermGS <- function(B=1000, restricted=TRUE,
+                         method="IPZ", type=c("logrank", "Gehan-Breslow", "Tarone-Ware",
+                                              "Prentice", "Prentice-Marek",
+                                              "Andersen-Borgan-Gill-Keiding",
+                                              "Fleming-Harrington", "Self"),
+                         imputeData=NULL, permuteData=NULL) {
+    if(!is.null(method)) {
+        if(method == "IPT") {
             imputeData <- impute.IPT
             permuteData <- permute.IPT
-        } else if(IP.method == "IPZ") {
+        } else if(method == "IPZ") {
             imputeData <- impute.IPZ
             permuteData <- permute.IPZ
-        } else if(IP.method == "none") {
+        } else if(method == "Heinze") {
+            imputeData <- impute.heinze
+            permuteData <- permute.heinze
+        } else if(method == "none") {
             imputeData <- function(data) data
             permuteData <- NULL
-        } else stop(paste("Unknown imputation method:", IP.method))
-    } else IP.method <- "user"
+        } else stop(paste("Unknown imputation method:", method))
+    } else method <- "user"
+
+    ## calculation of (weighted) logrank scores
+    trafo <- function(data) coin::logrank_trafo(data, ties.method="mid-ranks", type=type) ## type is passed on to coin::logrank_weight
     
-    x <- list(IP.method=IP.method, imputeData=imputeData, permuteData=permuteData,
+    x <- list(method=method, imputeData=imputeData, permuteData=permuteData, type=type, trafo=trafo,
               B=B, restricted=restricted, S=matrix(nrow=B, ncol=0), perms=matrix(nrow=0, ncol=B), strata=NULL,
               results=data.frame(cv.l=double(), cv.u=double(), obs=double(), reject=logical(), alpha=double(), p=double()))
     class(x) <- c("permGS", "list")
@@ -320,7 +132,8 @@ createPermGS <- function(B=1000, restricted=TRUE, IP.method="IPZ", imputeData=NU
 summary.permGS <- function(object, ...) {
     print(paste("Permutations:", object$B))
     print(paste("Restricted:", object$restricted))
-    print(paste("Imputation method:", object$IP.method))
+    print(paste("Imputation method:", object$method))
+    print(paste("Weights:", object$type))
     print(paste("Stage:", nrow(object$results)))
     print(object$results)
 }
@@ -374,7 +187,8 @@ nextStage <- function(pgs.obj, alpha, time, status, trt, strata) { ##formula, da
 
     n <- nrow(data)
     strata <- data$strata
-    
+
+    trafo <- pgs.obj$trafo
     B <- pgs.obj$B
     index <- 1:B
     stage <- nrow(pgs.obj$results) + 1
@@ -389,7 +203,7 @@ nextStage <- function(pgs.obj, alpha, time, status, trt, strata) { ##formula, da
     imp.data <- pgs.obj$imputeData(data)
 
     ## observed scores
-    scores <- logrank_trafo(data[,1], data[,2])
+    scores <- trafo(data) ##data[,1], data[,2])
 
     rejected <- logical(B)
 
@@ -413,19 +227,20 @@ nextStage <- function(pgs.obj, alpha, time, status, trt, strata) { ##formula, da
         srb <- rep.int(1, nrow(data))
         pgs.obj$perms <- sapply(index, function(i) shuffleBlock(spln, srb))
     }
-        
+    
     perms <- pgs.obj$perms
     newS <- numeric(B)
     newS[rejected] <- Inf
 
     ## calculate linear rank statistic for each permutation (scores are calculated once for observed data)
-    if(pgs.obj$IP.method == "none") {
+    if(pgs.obj$method == "none") {
         newS[!rejected] <- vapply(index[!rejected], function(i) sum(scores * data[perms[,i], 3]), NA_real_)
         d <- sum(data[,2])
     } else { ## scores need to be re-calculated for every permutation        
         tmp <- vapply(index[!rejected], function(i) {
             pdata <- permuteData(imp.data, perms[,i], TRUE)
-            c(sum(pdata[,2]), sum(logrank_trafo(pdata[,1], pdata[,2]) * pdata[,3]))
+            ##c(sum(pdata[,2]), sum(logrank_trafo(pdata[,1], pdata[,2]) * pdata[,3]))
+            c(sum(pdata[,2]), sum(trafo(pdata) * pdata[,3]))
         }, c(NA_real_, NA_real_))
 
         d <- mean(tmp[1,])
@@ -449,11 +264,11 @@ nextStage <- function(pgs.obj, alpha, time, status, trt, strata) { ##formula, da
     ## pvalue
     p <- (sum(newS >= obsS) + 1)/(B + 1)
 
-    reject <- (obsS > cv.u) | (obsS < cv.l)
+    reject <- (obsS < cv.l) | (obsS > cv.u)
     
-    pgs.obj$results <- rbind(pgs.obj$results, data.frame(cv.u=cv.u, cv.l=cv.l, obs=obsS, reject=reject, alpha=alpha, p=p))
+    pgs.obj$results <- rbind(pgs.obj$results, data.frame(cv.l=cv.l, cv.u=cv.u, obs=obsS, reject=reject, alpha=alpha, p=p))
     pgs.obj$S <- cbind(pgs.obj$S, newS)
     colnames(pgs.obj$S) <- NULL
     
-        pgs.obj
+    pgs.obj
 }

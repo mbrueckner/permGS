@@ -1,11 +1,11 @@
 #' permGS
 #'
-#' This package implements permutational group-sequential tests for time-to-event data based on the log-rank
-#' test statistic. It supports exact permutation test when the censoring distributions are equal in the treatment
-#' and the control group and approximate imputation-permutation methods of Wang et al. (2010) when the censoring
-#' distributions are different. Permutations can be stratified, i.e. only patients within the same stratum are
-#' treated as exchangeable. Rejection boundaries are monotone and finite even when only a random subset of all
-#' permutations is used. One- and Two-sided testing possible.
+#' This package implements permutational group-sequential tests for time-to-event data based on (weighted) log-rank
+#' test statistics. It supports exact permutation test when the censoring distributions are equal in the treatment
+#' and the control group and the approximate imputation-permutation methods of Heinze et al. (2003) and Wang et al. (2010)
+#' and  when the censoring distributions are different. Permutations can be stratified, i.e. only patients within the
+#' same stratum are treated as exchangeable. Rejection boundaries are monotone and finite even when only a random
+#' subset of all permutations is used. One- and Two-sided testing possible.
 #' 
 #' @author Matthias Brueckner \email{m.bruckner@@lancaster.ac.uk}, Franz Koenig \email{Franz.Koenig@@meduniwien.ac.at}, Martin Posch \email{martin.posch@@meduniwien.ac.at}
 #'
@@ -17,8 +17,8 @@
 #' Kelly, P., Zhou, Y., Whitehead, N. J., Stallard, N. and Bowman, C. Sequentially testing for a gene–drug interaction in a genomewide analysis. Statistics in Medicine, 27(11), 2022--2034, May 2008.
 #'
 #' @examples
-#' ## IPZ method with 1000 restricted random permutations
-#' x <- createPermGS(1000, TRUE, "IPZ")
+#' ## IPZ method based on logrank test with 1000 restricted random permutations
+#' x <- createPermGS(1000, TRUE, "IPZ", "logrank")
 #'
 #' T <- rexp(100) ## event times
 #' R <- runif(100, 0, 12)  ## recruitment times
@@ -47,4 +47,5 @@
 #' @docType package
 #' @import survival stats
 #' @importFrom utils combn
+#' @importFrom coin logrank_trafo
 NULL

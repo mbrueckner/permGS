@@ -1,29 +1,30 @@
-#' Calculate ranks from right-censored survival data
-#'
-#' Reduced version of coin::logrank_trafo
-#'
-#' @param time vector of survival times
-#' @param event vector of event indicators (0=censored, 1=event)
-#' @return vector of ranks
-logrank_trafo <- function(time, event) {
-    n <- length(time)
+## #' Calculate ranks from right-censored survival data
+## #'
+## #' Faster version of coin::logrank_trafo, but does not support weights
+## #' and does not handle ties
+## #'
+## #' @param time vector of survival times
+## #' @param event vector of event indicators (0=censored, 1=event)
+## #' @return vector of ranks
+## logrank_trafo <- function(time, event) {
+##     n <- length(time)
 
-    r <- rank(time, ties.method="min")
-    o <- order(time, event, na.last=TRUE, decreasing=FALSE)
-    or <- r[o]
-    uor <- unique.default(or)
+##     r <- rank(time, ties.method="min")
+##     o <- order(time, event, na.last=TRUE, decreasing=FALSE)
+##     or <- r[o]
+##     uor <- unique.default(or)
 
-    ## number at risk, number of ties and events at the ordered unique times
-    n_risk <- n - uor + 1L
-    n_ties <- -diff.default(c(n_risk, 0L))
-    eo <- event[o]
-    n_event <- vapply(uor, function(i) sum(eo[i == or]), NA_real_)
+##     ## number at risk, number of ties and events at the ordered unique times
+##     n_risk <- n - uor + 1L
+##     n_ties <- -diff.default(c(n_risk, 0L))
+##     eo <- event[o]
+##     n_event <- vapply(uor, function(i) sum(eo[i == or]), NA_real_)
 
-    ## index: expands ties and returns in original order
-    idx <- rep.int(seq_along(n_ties), n_ties)[r] # => uor[idx] == r
+##     ## index: expands ties and returns in original order
+##     idx <- rep.int(seq_along(n_ties), n_ties)[r] # => uor[idx] == r
 
-    cumsum(n_event / n_risk)[idx] - event
-}
+##     cumsum(n_event / n_risk)[idx] - event
+## }
 
 #' sampleFromKM
 #'
@@ -51,10 +52,11 @@ sampleFromKM <- function(n, fit, start=0, tmax=NULL, dv=1) {
 #' @param fit Kaplan-Meier fit as returned by survfit
 #' @param tmax largest observation of the pooled sample
 #' @param dv 1 if imputing events, 0 if imputing censoring times
+#' @param f interpolated Kaplan-Meier estimate
 #' @return Random sample of survival times drawn from conditional distribution of T given T > U
-sampleFromCondKM <- function(U, fit, tmax=NULL, dv=1) {
+sampleFromCondKM <- function(U, fit, tmax=NULL, dv=1, f=NULL) {
     n <- length(U)
-    f <- approxfun(fit$time, fit$surv, method="constant", yleft=1, rule=2, f=0)
+    if(is.null(f)) f <- approxfun(fit$time, fit$surv, method="constant", yleft=1, rule=2, f=0)
     sampleFromKM(n, fit, 1-f(U), tmax, dv)
 }
 

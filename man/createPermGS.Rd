@@ -4,15 +4,19 @@
 \alias{createPermGS}
 \title{createPermGS}
 \usage{
-createPermGS(B = 1000, restricted = TRUE, IP.method = "IPZ",
-  imputeData = NULL, permuteData = NULL)
+createPermGS(B = 1000, restricted = TRUE, method = "IPZ",
+  type = c("logrank", "Gehan-Breslow", "Tarone-Ware", "Prentice",
+  "Prentice-Marek", "Andersen-Borgan-Gill-Keiding", "Fleming-Harrington",
+  "Self"), imputeData = NULL, permuteData = NULL)
 }
 \arguments{
 \item{B}{number of random permutations}
 
 \item{restricted}{if TRUE only permute within strata}
 
-\item{IP.method}{imputation/permuation method IPZ, IPT or none (default: IPZ)}
+\item{method}{imputation/permuation method IPZ, IPT, Heinze or none (default: IPZ)}
+
+\item{type}{logrank weights to be used with coin::logrank_trafo}
 
 \item{imputeData}{user-supplied imputation function (ignored if IP.method is given)}
 
