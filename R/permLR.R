@@ -113,11 +113,11 @@ createPermGS <- function(B=1000, restricted=TRUE,
     } else method <- "user"
 
     ## calculation of (weighted) logrank scores
-    trafo <- function(data) coin::logrank_trafo(data, ties.method="mid-ranks", type=type) ## type is passed on to coin::logrank_weight
+    trafo <- function(data) -coin::logrank_trafo(data, ties.method="mid-ranks", type=type)
     
     x <- list(method=method, imputeData=imputeData, permuteData=permuteData, type=type, trafo=trafo,
               B=B, restricted=restricted, S=matrix(nrow=B, ncol=0), perms=matrix(nrow=0, ncol=B), strata=NULL,
-              results=data.frame(cv.l=double(), cv.u=double(), obs=double(), reject=logical(), alpha=double(), p=double()))
+              results=data.frame(cv.l=double(), cv.u=double(), obs=double(), reject=logical(), alpha.l=double(), alpha.u=double(), p=double()))
     class(x) <- c("permGS", "list")
     x
 }
@@ -205,11 +205,17 @@ nextStage <- function(pgs.obj, alpha, time, status, trt, strata) { ##formula, da
     ## observed scores
     scores <- trafo(data) ##data[,1], data[,2])
 
-    rejected <- logical(B)
-
+    rejected.l <- logical(B)
+    rejected.u <- logical(B)
+    
     if(pgs.obj$restricted) {
         if(stage > 1) {
-            rejected <- vapply(index, function(i) any(S[i,] > cv.u[stage-1] | S[i,] < cv.l[stage-1]), FALSE)
+            rejected.l <- vapply(index, function(i) {
+                any(sapply(1:(stage-1), function(j) S[i,j] < cv.l[j]))
+            }, FALSE)
+            rejected.u <- vapply(index, function(i) {
+                any(sapply(1:(stage-1), function(j) S[i,j] > cv.u[j]))
+            }, FALSE)
         }
         ## We only need to shuffle the one new block of the current stage B times
         ## perms = matrix of blockwise permuted 1:n vectors (1 perm = 1 column), B columns
@@ -230,8 +236,10 @@ nextStage <- function(pgs.obj, alpha, time, status, trt, strata) { ##formula, da
     
     perms <- pgs.obj$perms
     newS <- numeric(B)
-    newS[rejected] <- Inf
-
+    newS[rejected.u] <- Inf
+    newS[rejected.l] <- -Inf
+    rejected <- rejected.l | rejected.u
+    
     ## calculate linear rank statistic for each permutation (scores are calculated once for observed data)
     if(pgs.obj$method == "none") {
         newS[!rejected] <- vapply(index[!rejected], function(i) sum(scores * data[perms[,i], 3]), NA_real_)
@@ -254,20 +262,24 @@ nextStage <- function(pgs.obj, alpha, time, status, trt, strata) { ##formula, da
     if(length(alpha) == 2) {
         alpha.l <- alpha[1]
         alpha.u <- alpha[2]
+        cv.l <- quantile(c(obsS, newS), probs=alpha.l, names=FALSE)
     } else {
         alpha.l <- 0  ## cv.l=-Inf
         alpha.u <- alpha
+        cv.l <- -Inf
     }    
     cv.u <- quantile(c(obsS, newS), probs=1-alpha.u, names=FALSE)
-    cv.l <- quantile(c(obsS, newS), probs=alpha.l, names=FALSE)
+    
 
     ## pvalue
     p <- (sum(newS >= obsS) + 1)/(B + 1)
 
     reject <- (obsS < cv.l) | (obsS > cv.u)
+
+    if(!is.finite(cv.u)) browser()
     
-    pgs.obj$results <- rbind(pgs.obj$results, data.frame(cv.l=cv.l, cv.u=cv.u, obs=obsS, reject=reject, alpha=alpha, p=p))
     pgs.obj$S <- cbind(pgs.obj$S, newS)
+    pgs.obj$results <- rbind(pgs.obj$results, data.frame(cv.l=cv.l, cv.u=cv.u, obs=obsS, reject=reject, alpha.l=alpha.l, alpha.u=alpha.u, p=p, Z=obsS/sd(newS[is.finite(newS)])))
     colnames(pgs.obj$S) <- NULL
     
     pgs.obj
