@@ -4,14 +4,14 @@
 \alias{permLR}
 \title{permLR}
 \usage{
-permLR(B, formula, data, type = "exact")
+permLR(B, formula, data = parent.frame(), type = "exact")
 }
 \arguments{
 \item{B}{number of random permutations (only used if type="approximate")}
 
-\item{formula}{formula specifying data model}
+\item{formula}{a formula object, as used by \code{\link{coxph}}, left hand side must be a 'Surv' object, right hand side may only consist of a single term (treatment indicator)}
 
-\item{data}{data.frame or list containing the variables in "formula"}
+\item{data}{data.frame or list containing the variables in "formula", by default "formula" is evaluated in the parent frame}
 
 \item{type}{if type="exact" performs complete enumeration of all permutations, if type="approximate" draw random permutations, if type="asymptotic" perform asymptotic log-rank test}
 }

@@ -66,8 +66,8 @@ sampleFromCondKM <- function(U, fit, tmax=NULL, dv=1, f=NULL) {
 #' @param formula formula object
 #' @param data data.frame (optional)
 #' @return data.frame containing the parsed variables
-parseFormula <- function(formula, data) {
-    Terms <- terms(formula)
+parseFormula <- function(formula, data=parent.frame()) {
+    Terms <- terms(formula, specials="strata")
     mf <- model.frame(Terms, data)
     
     ## extract Surv object

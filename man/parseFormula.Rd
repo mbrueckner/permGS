@@ -4,7 +4,7 @@
 \alias{parseFormula}
 \title{Parse formula of survival model}
 \usage{
-parseFormula(formula, data)
+parseFormula(formula, data = parent.frame())
 }
 \arguments{
 \item{formula}{formula object}

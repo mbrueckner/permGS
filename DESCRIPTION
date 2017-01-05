@@ -1,7 +1,7 @@
 Package: permGS
 Title: Permutational Group Sequential Test for Time-to-Event Data
-Version: 0.1.0
-Date: 2016-12-15
+Version: 0.2.0
+Date: 2017-01-05
 Authors@R: c(person("Matthias", "Brueckner", email = "m.bruckner@lancaster.ac.uk", role = c("aut", "cre")), person("Martin", "Posch", email = "martin.posch@meduniwien.ac.at", role = "aut"), person("Franz", "Koenig", email = "Franz.Koenig@meduniwien.ac.at", role = "aut"))
 Maintainer: Matthias Brueckner <m.bruckner@lancaster.ac.uk>
 Description: Permutational group-sequential tests for time-to-event data based on the log-rank test statistic. Supports exact permutation test when the censoring distributions are equal in the treatment and the control group and approximate imputation-permutation methods when the censoring distributions are different. 

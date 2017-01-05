@@ -7,8 +7,8 @@
 #' AND censoring distributions.
 #'
 #' @param B number of random permutations (only used if type="approximate")
-#' @param formula formula specifying data model
-#' @param data data.frame or list containing the variables in "formula"
+#' @param formula a formula object, as used by \code{\link{coxph}}, left hand side must be a 'Surv' object, right hand side may only consist of a single term (treatment indicator)
+#' @param data data.frame or list containing the variables in "formula", by default "formula" is evaluated in the parent frame
 #' @param type if type="exact" performs complete enumeration of all permutations, if type="approximate" draw random permutations, if type="asymptotic" perform asymptotic log-rank test
 #'
 #' @return A list containing the exact or approximate permutation p-value and the observed test statistic
@@ -27,9 +27,8 @@
 #' print(paste("Exact permutation p-value:", y$p))
 #'
 #' @export
-permLR <- function(B, formula, data, type="exact") {
-    data <- parseFormula(formula, data)
-    
+permLR <- function(B, formula, data=parent.frame(), type="exact") {
+    data <- parseFormula(formula, data)    
     trt <- data$trt
 
     ## calculate logrank scores
@@ -113,11 +112,11 @@ createPermGS <- function(B=1000, restricted=TRUE,
     } else method <- "user"
 
     ## calculation of (weighted) logrank scores
-    trafo <- function(data) -coin::logrank_trafo(data, ties.method="mid-ranks", type=type)
+    trafo <- function(data) coin::logrank_trafo(data, ties.method="mid-ranks", type=type)
     
-    x <- list(method=method, imputeData=imputeData, permuteData=permuteData, type=type, trafo=trafo,
+    x <- list(method=method, imputeData=imputeData, permuteData=permuteData, type=type[1], trafo=trafo,
               B=B, restricted=restricted, S=matrix(nrow=B, ncol=0), perms=matrix(nrow=0, ncol=B), strata=NULL,
-              results=data.frame(cv.l=double(), cv.u=double(), obs=double(), reject=logical(), alpha.l=double(), alpha.u=double(), p=double()))
+              results=data.frame(cv.l=double(), cv.u=double(), std.cv.l=double(), std.cv.u=double(), obs=double(), reject=logical(), alpha.l=double(), alpha.u=double(), p=double()))
     class(x) <- c("permGS", "list")
     x
 }
@@ -133,7 +132,7 @@ summary.permGS <- function(object, ...) {
     print(paste("Permutations:", object$B))
     print(paste("Restricted:", object$restricted))
     print(paste("Imputation method:", object$method))
-    print(paste("Weights:", object$type))
+    print(paste("Weights:", object$type[1]))
     print(paste("Stage:", nrow(object$results)))
     print(object$results)
 }
@@ -146,10 +145,8 @@ summary.permGS <- function(object, ...) {
 #'
 #' @param pgs.obj permGS object as returned by \code{\link{createPermGS}}
 #' @param alpha alpha at current stage
-#' @param time event times
-#' @param status censoring indicator
-#' @param trt treatment indicator
-#' @param strata stratum indicator
+#' @param formula a formula object, as used by \code{\link{coxph}}, left hand side must be a 'Surv' object, right hand side must only consist of a factor (treatment indicator) and optionally a special strata() term identifying the permutation strata
+#' @param data a data.frame or list containing the variables in "formula", by default "formula" is evaluated in the parent frame
 #' @return An updated permGS object.
 #' @examples
 #' ## Two-stage design with one-sided O'Brien-Fleming boundaries using IPZ method
@@ -170,21 +167,20 @@ summary.permGS <- function(object, ...) {
 #' ## Stage 2 data
 #' data.t2 <- data.frame(time=pmin(T, C, max(0, (t2-R))), status=(T<=pmin(C, t2-R)), trt=Z)
 #' data.t2 <- data.t2[R <= t2,] 
-#' x <- nextStage(x, 0.00153, data.t1$time, data.t1$status, data.t1$trt, rep.int(1, nrow(data.t1)))
+#' x <- nextStage(x, 0.00153, Surv(time, status) ~ trt, data.t1)
 #' summary(x)
 #'
 #' if(!x$results$reject[1]) {
-#'    x <- nextStage(x, alpha=0.025, time=data.t2$time, status=data.t2$status, trt=data.t2$trt,
-#'           strata=rep.int(c(1,2), c(nrow(data.t1), nrow(data.t2)-nrow(data.t1))))
+#'    data.t2$strata <- rep.int(c(1,2), c(nrow(data.t1), nrow(data.t2)-nrow(data.t1)))
+#'    x <- nextStage(x, 0.025, Surv(time, status) ~ trt + strata(strata), data.t2)
 #'    summary(x)
 #' }
 #' @export
-nextStage <- function(pgs.obj, alpha, time, status, trt, strata) { ##formula, data, entry=NULL) {
+nextStage <- function(pgs.obj, alpha, formula, data=parent.frame()) {
     if(any(pgs.obj$results$reject)) return(pgs.obj)
 
-    data <- data.frame(time=time, status=status, trt=trt, strata=strata)
-    ##data <- parseFormula(formula, data)
-
+    data <- parseFormula(formula, data)
+    
     n <- nrow(data)
     strata <- data$strata
 
@@ -226,7 +222,7 @@ nextStage <- function(pgs.obj, alpha, time, status, trt, strata) { ##formula, da
             srb <- strata[sb]
             pgs.obj$perms <- rbind(pgs.obj$perms, sapply(index, function(i) shuffleBlock(spln, srb)))
         }
-        if(nrow(data) != nrow(pgs.obj$perms)) stop("nextStage: New patients but no new strata!")
+        if(nrow(data) != nrow(pgs.obj$perms)) stop("nextStage: Invalid data (New patients but no new strata defined)!")
         pgs.obj$strata <- unique(strata)
     } else {
         spln <- 1:nrow(data)
@@ -264,23 +260,23 @@ nextStage <- function(pgs.obj, alpha, time, status, trt, strata) { ##formula, da
         alpha.u <- alpha[2]
         cv.l <- quantile(c(obsS, newS), probs=alpha.l, names=FALSE)
     } else {
-        alpha.l <- 0  ## cv.l=-Inf
+        alpha.l <- 0
         alpha.u <- alpha
         cv.l <- -Inf
     }    
     cv.u <- quantile(c(obsS, newS), probs=1-alpha.u, names=FALSE)
     
-
+    sdS <- sd(newS[is.finite(newS)])
+       
     ## pvalue
     p <- (sum(newS >= obsS) + 1)/(B + 1)
 
     reject <- (obsS < cv.l) | (obsS > cv.u)
 
-    if(!is.finite(cv.u)) browser()
-    
     pgs.obj$S <- cbind(pgs.obj$S, newS)
-    pgs.obj$results <- rbind(pgs.obj$results, data.frame(cv.l=cv.l, cv.u=cv.u, obs=obsS, reject=reject, alpha.l=alpha.l, alpha.u=alpha.u, p=p, Z=obsS/sd(newS[is.finite(newS)])))
     colnames(pgs.obj$S) <- NULL
-    
+    pgs.obj$results <- rbind(pgs.obj$results,
+                             data.frame(cv.l=cv.l, cv.u=cv.u, std.cv.l=cv.l/sdS, std.cv.u=cv.u/sdS,
+                                        reject=reject, alpha.l=alpha.l, alpha.u=alpha.u, p=p, Z=obsS/sdS))
     pgs.obj
 }

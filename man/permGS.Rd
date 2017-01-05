@@ -29,14 +29,14 @@ t2 <- 18  ## calendar time of final analysis
 ## Stage 1
 data.t1 <- data.frame(time=pmin(T, C, max(0, (t1-R))), status=(T<=pmin(C, t1-R)), trt=Z)
 data.t1 <- data.t1[R <= t1,] 
-x <- nextStage(x, 0.00153, data.t1$time, data.t1$status, data.t1$trt, rep.int(1, nrow(data.t1)))
+x <- nextStage(x, 0.00153, Surv(time, status) ~ trt, data.t1)
 summary(x)
 
 if(!x$results$reject[1]) { ## Stage 2
    data.t2 <- data.frame(time=pmin(T, C, max(0, (t2-R))), status=(T<=pmin(C, t2-R)), trt=Z)
    data.t2 <- data.t2[R <= t2,]
-   x <- nextStage(x, alpha=0.025, time=data.t2$time, status=data.t2$status, trt=data.t2$trt,
-           strata=rep.int(c(1,2), c(nrow(data.t1), nrow(data.t2)-nrow(data.t1))))
+   data.t2$strata <- rep.int(c(1,2), c(nrow(data.t1), nrow(data.t2)-nrow(data.t1)))
+   x <- nextStage(x, alpha=0.025, Surv(time, status) ~ trt + strata(strata), data.t2)           
    summary(x)
 }
 
