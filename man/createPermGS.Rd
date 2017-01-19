@@ -4,7 +4,7 @@
 \alias{createPermGS}
 \title{createPermGS}
 \usage{
-createPermGS(B = 1000, restricted = TRUE, method = "IPZ",
+createPermGS(B = 1000, restricted = TRUE, method = "IPZ", pool = TRUE,
   type = c("logrank", "Gehan-Breslow", "Tarone-Ware", "Prentice",
   "Prentice-Marek", "Andersen-Borgan-Gill-Keiding", "Fleming-Harrington",
   "Self"), imputeData = NULL, permuteData = NULL)
@@ -15,6 +15,8 @@ createPermGS(B = 1000, restricted = TRUE, method = "IPZ",
 \item{restricted}{if TRUE only permute within strata}
 
 \item{method}{imputation/permuation method IPZ, IPT, Heinze or none (default: IPZ)}
+
+\item{pool}{if TRUE impute event times from Kaplan-Meier estimator calculated from pooled data}
 
 \item{type}{logrank weights to be used with coin::logrank_trafo}
 

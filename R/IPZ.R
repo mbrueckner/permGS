@@ -8,18 +8,15 @@
 #' @references
 #' Wang, R., Lagakos, S.~W. and Gray, R.~J. Testing and interval estimation for two-sample survival comparisons with small sample sizes and unequal censoring. Biostatistics, 11(4), 676--692, January 2010.
 #' 
-impute.IPZ <- function(data) {
+impute.IPZ <- function(data, pool=TRUE) {
     time <- data[,1]
     status <- data[,2]
-
     tmax <- max(time)
     
-    ## KM estimator from pooled data
-    fitS <- survfit(Surv(time, status) ~ 1)
-
     ## split data set by treatment groups
-    data1 <- data[data[,3] == 0,]
-    data2 <- data[data[,3] == 1,]
+    g <- data[,3] == 0
+    data1 <- data[g,]
+    data2 <- data[!g,]
 
     ## extract variable because indexing is not allowed in Surv function
     time1 <- data1[,1]
@@ -28,22 +25,32 @@ impute.IPZ <- function(data) {
     time2 <- data2[,1]
     status2 <- data2[,2]
 
+    if(pool) {
+        fitS1 <- survfit(Surv(time, status) ~ 1)
+        fitS2 <- fitS1
+    } else {
+        fitS1 <- survfit(Surv(time1, status1) ~ 1)
+        fitS2 <- survfit(Surv(time2, status2) ~ 1)
+    }
+   
     ## KM for censoring time in each group
-    fit0 <- survfit(Surv(time1, 1-status1) ~ 1)
-    fit1 <- survfit(Surv(time2, 1-status2) ~ 1)
+    fit1 <- survfit(Surv(time1, 1-status1) ~ 1)
+    fit2 <- survfit(Surv(time2, 1-status2) ~ 1)
 
     f <- function(work.data, trt.level, fitS, fitK) {
         U <- work.data[,1]
         delta <- as.logical(work.data[,2])
         Tdelta <- delta
         T <- U
-
-        if(!all(delta)) {
-            tmp <- sampleFromCondKM(U[!delta], fitS, tmax, 1)
-            T[!delta] <- tmp[1,]
-            Tdelta[!delta] <- tmp[2,]
+      
+        ## only impute event times for censored observations
+        v <- !delta
+        if(any(v)) {
+            tmp <- sampleFromCondKM(U[v], fitS, tmax, 1)
+            T[v] <- tmp[1,]
+            Tdelta[v] <- tmp[2,]
         }
-
+                
         n <- length(U)
 
         C <- sampleFromKM(n, fitK, 0, tmax, 0)[1,]
@@ -82,9 +89,9 @@ impute.IPZ <- function(data) {
         matrix(c(time, status), nrow=length(time), ncol=2)
     }
 
-    V1 <- f(data2, 1, fitS, fit0)
+    V1 <- f(data2, 1, fitS2, fit1)
 
-    V2 <- f(data1, 0, fitS, fit1)
+    V2 <- f(data1, 0, fitS1, fit2)
 
     ## columns: time, status, trt, entry, id, block, rnd.block, time1, status1, time2, status2
     cbind(data[,1:3], V1, V2)

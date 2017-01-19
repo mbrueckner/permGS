@@ -1,4 +1,4 @@
-#' permLR
+#' exactLR
 #'
 #' One-sided exact / approximate permutation and asymptotic log-rank test
 #'
@@ -18,16 +18,16 @@
 #' data <- data.frame(time=pmin(T, C), status=(T<=C), trt=rbinom(20, 1, 0.5))
 #'
 #' # Approximate permutation test using 1000 random permutations
-#' x <- permLR(1000, Surv(time, status) ~ trt, data, "approximate")
+#' x <- exactLR(1000, Surv(time, status) ~ trt, data, "approximate")
 #'
 #' print(paste("Approximate permutation p-value:", x$p))
 #'
 #' # Exact permutation test
-#' y <- permLR(0, Surv(time, status) ~ trt, data, "exact")
+#' y <- exactLR(0, Surv(time, status) ~ trt, data, "exact")
 #' print(paste("Exact permutation p-value:", y$p))
 #'
 #' @export
-permLR <- function(B, formula, data=parent.frame(), type="exact") {
+exactLR <- function(B, formula, data=parent.frame(), type="exact") {
     data <- parseFormula(formula, data)    
     trt <- data$trt
 
@@ -39,7 +39,7 @@ permLR <- function(B, formula, data=parent.frame(), type="exact") {
 
     if(sum(trt) == 0) return(list(p=1, obsS=0))
 
-    if(type == "exact") { ## complete enumeration of all permutations
+    if(type == "exact") { ## complete enumeration of all combinations
         co <- utils::combn(1:length(trt), sum(trt))
         S <- vapply(1:ncol(co), function(i) sum(x[co[,i]]), NA_real_)
         p <- mean(S >= obsS)
@@ -78,6 +78,7 @@ shuffleBlock <- function(block, strata=0) {
 #' @param B number of random permutations
 #' @param restricted if TRUE only permute within strata
 #' @param method imputation/permuation method IPZ, IPT, Heinze or none (default: IPZ)
+#' @param pool if TRUE impute event times from Kaplan-Meier estimator calculated from pooled data
 #' @param imputeData user-supplied imputation function (ignored if IP.method is given)
 #' @param permuteData user-supplied permutation function (ignore if IP.method is given)
 #' @param type logrank weights to be used with coin::logrank_trafo
@@ -89,12 +90,15 @@ shuffleBlock <- function(block, strata=0) {
 #' ## imputation using IPT method, restricted permutations
 #' y <- createPermGS(1000, TRUE, "IPT")
 #' @export
-createPermGS <- function(B=1000, restricted=TRUE,
-                         method="IPZ", type=c("logrank", "Gehan-Breslow", "Tarone-Ware",
-                                              "Prentice", "Prentice-Marek",
-                                              "Andersen-Borgan-Gill-Keiding",
-                                              "Fleming-Harrington", "Self"),
+createPermGS <- function(B=1000, restricted=TRUE, method="IPZ", pool=TRUE,
+                         type=c("logrank", "Gehan-Breslow", "Tarone-Ware",
+                                "Prentice", "Prentice-Marek",
+                                "Andersen-Borgan-Gill-Keiding",
+                                "Fleming-Harrington", "Self"),
                          imputeData=NULL, permuteData=NULL) {
+
+    type <- match.arg(type)
+    
     if(!is.null(method)) {
         if(method == "IPT") {
             imputeData <- impute.IPT
@@ -113,8 +117,8 @@ createPermGS <- function(B=1000, restricted=TRUE,
 
     ## calculation of (weighted) logrank scores
     trafo <- function(data) coin::logrank_trafo(data, ties.method="mid-ranks", type=type)
-    
-    x <- list(method=method, imputeData=imputeData, permuteData=permuteData, type=type[1], trafo=trafo,
+
+    x <- list(method=method, pool=pool, imputeData=imputeData, permuteData=permuteData, type=type, trafo=trafo,
               B=B, restricted=restricted, S=matrix(nrow=B, ncol=0), perms=matrix(nrow=0, ncol=B), strata=NULL,
               results=data.frame(cv.l=double(), cv.u=double(), std.cv.l=double(), std.cv.u=double(), obs=double(), reject=logical(), alpha.l=double(), alpha.u=double(), p=double()))
     class(x) <- c("permGS", "list")
@@ -196,7 +200,7 @@ nextStage <- function(pgs.obj, alpha, formula, data=parent.frame()) {
 
     ## perform imputation step
     data <- as.matrix(data)
-    imp.data <- pgs.obj$imputeData(data)
+    imp.data <- pgs.obj$imputeData(data, pgs.obj$pool)
 
     ## observed scores
     scores <- trafo(data) ##data[,1], data[,2])
@@ -279,4 +283,108 @@ nextStage <- function(pgs.obj, alpha, formula, data=parent.frame()) {
                              data.frame(cv.l=cv.l, cv.u=cv.u, std.cv.l=cv.l/sdS, std.cv.u=cv.u/sdS,
                                         reject=reject, alpha.l=alpha.l, alpha.u=alpha.u, p=p, Z=obsS/sdS))
     pgs.obj
+}
+
+#' Convenience function which calls createPermGS and nextStage to perform fixed sample size permutation test with IPT method
+#'
+#' @param formula a formula object, as used by \code{\link{coxph}}, left hand side must be a 'Surv' object, right hand side must only consist of a factor (treatment indicator) and optionally a special strata() term identifying the permutation strata
+#' @param data a data.frame or list containing the variables in "formula", by default "formula" is evaluated in the parent frame
+#' @param B number of random permutations (default: 1000)
+#' @param alpha significance level (default: 0.05)
+#' @param pool if TRUE impute event times from Kaplan-Meier estimator calculated from pooled data
+#' @param type logrank weights to be used with coin::logrank_trafo
+#' @return An object of class permGS
+#' @examples
+#' T <- rexp(100) ## event times
+#' Z <- rbinom(100, 1, 0.5)  ## treatment assignment
+#' C <- rexp(100) ## drop-out times
+#' data <- data.frame(time=pmin(T,C), status=T<=C, Z=Z)
+#' permIPT(Surv(time, status) ~ Z, data)
+#' @export
+permIPT <- function(formula, data, B=1000, alpha=0.05, pool=TRUE,
+                    type=c("logrank", "Gehan-Breslow", "Tarone-Ware",
+                           "Prentice", "Prentice-Marek",
+                           "Andersen-Borgan-Gill-Keiding",
+                           "Fleming-Harrington", "Self")) {
+    x <- createPermGS(B, FALSE, "IPT", pool, type)
+    nextStage(x, alpha, formula, data)
+}
+
+#' Convenience function which calls createPermGS and nextStage to perform fixed sample size permutation test with IPZ method
+#'
+#' @param formula a formula object, as used by \code{\link{coxph}}, left hand side must be a 'Surv' object, right hand side must only consist of a factor (treatment indicator) and optionally a special strata() term identifying the permutation strata
+#' @param data a data.frame or list containing the variables in "formula", by default "formula" is evaluated in the parent frame
+#' @param B number of random permutations (default: 1000)
+#' @param alpha significance level (default: 0.05)
+#' @param pool if TRUE impute event times from Kaplan-Meier estimator calculated from pooled data
+#' @param type logrank weights to be used with coin::logrank_trafo
+#' @return An object of class permGS
+#' @examples
+#' T <- rexp(100) ## event times
+#' Z <- rbinom(100, 1, 0.5)  ## treatment assignment
+#' C <- rexp(100) ## drop-out times
+#' data <- data.frame(time=pmin(T,C), status=T<=C, Z=Z)
+#' x <- permIPZ(Surv(time, status) ~ Z, data)
+#' summary(x)
+#' @export
+permIPZ <- function(formula, data, B=1000, alpha=0.05, pool=TRUE,
+                    type=c("logrank", "Gehan-Breslow", "Tarone-Ware",
+                           "Prentice", "Prentice-Marek",
+                           "Andersen-Borgan-Gill-Keiding",
+                           "Fleming-Harrington", "Self")) {
+    x <- createPermGS(B, FALSE, "IPZ", pool, type)
+    nextStage(x, alpha, formula, data)
+}
+
+#' Convenience function which calls createPermGS and nextStage to perform fixed sample size permutation test with Heinze method
+#'
+#' @param formula a formula object, as used by \code{\link{coxph}}, left hand side must be a 'Surv' object, right hand side must only consist of a factor (treatment indicator) and optionally a special strata() term identifying the permutation strata
+#' @param data a data.frame or list containing the variables in "formula", by default "formula" is evaluated in the parent frame
+#' @param B number of random permutations (default: 1000)
+#' @param alpha significance level (default: 0.05)
+#' @param pool if TRUE impute event times from Kaplan-Meier estimator calculated from pooled data
+#' @param type logrank weights to be used with coin::logrank_trafo
+#' @return An object of class permGS
+#' @examples
+#' T <- rexp(100) ## event times
+#' Z <- rbinom(100, 1, 0.5)  ## treatment assignment
+#' C <- rexp(100) ## drop-out times
+#' data <- data.frame(time=pmin(T,C), status=T<=C, Z=Z)
+#' x <- permHeinze(Surv(time, status) ~ Z, data)
+#' summary(x)
+#' @export
+permHeinze <- function(formula, data, B=1000, alpha=0.05, pool=TRUE,
+                       type=c("logrank", "Gehan-Breslow", "Tarone-Ware",
+                              "Prentice", "Prentice-Marek",
+                              "Andersen-Borgan-Gill-Keiding",
+                              "Fleming-Harrington", "Self")) {
+    x <- createPermGS(B, FALSE, "Heinze", pool, type)
+    nextStage(x, alpha, formula, data)
+}
+
+#' Convenience function which calls createPermGS and nextStage to perform fixed sample size permutation test without imputation
+#'
+#' @param formula a formula object, as used by \code{\link{coxph}}, left hand side must be a 'Surv' object, right hand side must only consist of a factor (treatment indicator) and optionally a special strata() term identifying the permutation strata
+#' @param data a data.frame or list containing the variables in "formula", by default "formula" is evaluated in the parent frame
+#' @param B number of random permutations (default: 1000)
+#' @param alpha significance level (default: 0.05)
+#' @param pool if TRUE impute event times from Kaplan-Meier estimator calculated from pooled data
+#' @param type logrank weights to be used with coin::logrank_trafo
+#' @return An object of class permGS
+#' @examples
+#' ## Two-sided permutation test
+#' T <- rexp(100) ## event times
+#' Z <- rbinom(100, 1, 0.5)  ## treatment assignment
+#' C <- rexp(100) ## drop-out times
+#' data <- data.frame(time=pmin(T,C), status=T<=C, Z=Z)
+#' x <- permLR(Surv(time, status) ~ Z, data, alpha=c(0.025, 0.025))
+#' summary(x)
+#' @export
+permLR <- function(formula, data, B=1000, alpha=0.05, pool=TRUE,
+                   type=c("logrank", "Gehan-Breslow", "Tarone-Ware",
+                          "Prentice", "Prentice-Marek",
+                          "Andersen-Borgan-Gill-Keiding",
+                          "Fleming-Harrington", "Self")) {
+    x <- createPermGS(B, FALSE, "none", pool, type)
+    nextStage(x, alpha, formula, data)
 }

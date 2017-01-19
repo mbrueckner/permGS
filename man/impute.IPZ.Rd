@@ -4,7 +4,7 @@
 \alias{impute.IPZ}
 \title{impute.IPZ}
 \usage{
-impute.IPZ(data)
+impute.IPZ(data, pool = TRUE)
 }
 \arguments{
 \item{data}{matrix as returned by as.matrix(generateData(param))}

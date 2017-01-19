@@ -10,6 +10,8 @@
 #' @author Matthias Brueckner \email{m.bruckner@@lancaster.ac.uk}, Franz Koenig \email{Franz.Koenig@@meduniwien.ac.at}, Martin Posch \email{martin.posch@@meduniwien.ac.at}
 #'
 #' @references
+#' Brueckner, M., Koenig, F. and Posch, M. Group-sequential permutation tests for time-to-event data.
+#' 
 #' Heinze, G., Gnant, M. and Schemper, M. Exact Log-Rank Tests for Unequal Follow-Up. Biometrics, 59(4), December 2003.
 #'
 #' Wang, R., Lagakos, S.~W. and Gray, R.~J. Testing and interval estimation for two-sample survival comparisons with small sample sizes and unequal censoring. Biostatistics, 11(4), 676--692, January 2010.

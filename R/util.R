@@ -97,8 +97,12 @@ parseFormula <- function(formula, data=parent.frame()) {
     }
     
     sdi <- setdiff(labels(Terms), st.labels)
-    if(length(sdi) > 0) trt <- mf[sdi]
-    else stop("No treatment groups specified!")
+    if(length(sdi) > 0) {
+        trt <- as.factor(mf[[sdi]])
+        if(nlevels(trt) != 2) stop("This package only supports two-sample methods!")
+        ## ensure trt contains only 0/1
+        trt <- as.integer(trt) - 1
+    } else stop("No treatment groups specified!")
   
     if(!is.null(W)) data.frame(time=Stop, status=status, trt=trt, strata=W)
     else data.frame(time=Stop, status=status, trt=trt, strata=rep.int(1, length(trt)))

@@ -4,7 +4,7 @@
 \alias{impute.heinze}
 \title{impute.heinze}
 \usage{
-impute.heinze(data)
+impute.heinze(data, pool = TRUE)
 }
 \arguments{
 \item{data}{matrix as returned by as.matrix(generateData(param))}

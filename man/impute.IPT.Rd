@@ -4,7 +4,7 @@
 \alias{impute.IPT}
 \title{impute.IPT}
 \usage{
-impute.IPT(data)
+impute.IPT(data, pool = TRUE)
 }
 \arguments{
 \item{data}{matrix as returned by as.matrix(generateData(param))}
