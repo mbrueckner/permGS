@@ -1,14 +1,15 @@
-#' impute.IPZ
+#' imputeIPZ
 #'
 #' Impute data according to IPZ method. Output is supposed to be passed to permute.IPZ
 #'
 #' @param data matrix as returned by as.matrix(generateData(param))
-#'
+#' @param pool if TRUE impute events times from pooled Kaplan-Meier estimator (default: TRUE)
+#' 
 #' @return original data with 4 new columns (V1 and V2) containing the imputed observations
 #' @references
 #' Wang, R., Lagakos, S.~W. and Gray, R.~J. Testing and interval estimation for two-sample survival comparisons with small sample sizes and unequal censoring. Biostatistics, 11(4), 676--692, January 2010.
 #' 
-impute.IPZ <- function(data, pool=TRUE) {
+imputeIPZ <- function(data, pool=TRUE) {
     time <- data[,1]
     status <- data[,2]
     tmax <- max(time)
@@ -97,7 +98,7 @@ impute.IPZ <- function(data, pool=TRUE) {
     cbind(data[,1:3], V1, V2)
 }
 
-#' permute.IPZ
+#' permuteIPZ
 #'
 #' Permute treatment assignment after imputation (IPZ)
 #'
@@ -109,7 +110,7 @@ impute.IPZ <- function(data, pool=TRUE) {
 #' @references
 #' Wang, R., Lagakos, S.~W. and Gray, R.~J. Testing and interval estimation for two-sample survival comparisons with small sample sizes and unequal censoring. Biostatistics, 11(4), 676--692, January 2010.
 #' 
-permute.IPZ <- function(data, pZ, index=FALSE) {
+permuteIPZ <- function(data, pZ, index=FALSE) {
     Z <- data[,3]
     if(index) pZ <- data[pZ, 3]
 

@@ -101,16 +101,16 @@ createPermGS <- function(B=1000, restricted=TRUE, method="IPZ", pool=TRUE,
     
     if(!is.null(method)) {
         if(method == "IPT") {
-            imputeData <- impute.IPT
-            permuteData <- permute.IPT
+            imputeData <- imputeIPT
+            permuteData <- permuteIPT
         } else if(method == "IPZ") {
-            imputeData <- impute.IPZ
-            permuteData <- permute.IPZ
+            imputeData <- imputeIPZ
+            permuteData <- permuteIPZ
         } else if(method == "Heinze") {
-            imputeData <- impute.heinze
-            permuteData <- permute.heinze
+            imputeData <- imputeHeinze
+            permuteData <- permuteHeinze
         } else if(method == "none") {
-            imputeData <- function(data) data
+            imputeData <- function(data, pool=FALSE) data
             permuteData <- NULL
         } else stop(paste("Unknown imputation method:", method))
     } else method <- "user"

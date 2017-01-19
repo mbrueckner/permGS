@@ -15,7 +15,7 @@ subset of all permutations is used. One- and Two-sided testing possible.
 }
 \examples{
 ## IPZ method based on logrank test with 1000 restricted random permutations
-x <- createPermGS(1000, TRUE, "IPZ", "logrank")
+x <- createPermGS(1000, TRUE, "IPZ", type="logrank")
 
 T <- rexp(100) ## event times
 R <- runif(100, 0, 12)  ## recruitment times

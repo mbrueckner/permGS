@@ -1,14 +1,15 @@
-#' impute.heinze
+#' imputeHeinze
 #'
 #' Impute data according to Heinze et al. method. Output is supposed to be passed to permute.heinze
 #'
 #' @param data matrix as returned by as.matrix(generateData(param))
-#'
+#' @param pool if TRUE impute events times from pooled Kaplan-Meier estimator (default: TRUE)
+#' 
 #' @return list containing Kaplan-Meier estimators of censoring and survival distributions and the original data
 #' @references
 #' Heinze, G., Gnant, M. and Schemper, M. Exact Log-Rank Tests for Unequal Follow-Up. Biometrics, 59(4), December 2003.
 #' 
-impute.heinze <- function(data, pool=TRUE) {    
+imputeHeinze <- function(data, pool=TRUE) {    
     time <- data[,1]
     status <- data[,2]
 
@@ -61,7 +62,7 @@ impute.heinze <- function(data, pool=TRUE) {
     list(fS1=fS1, fS2=fS2, f1=f1, f2=f2, fit1=fit1, fit2=fit2, tmax=tmax, g1=g1, g2=g2, data=data)
 }
 
-#' permute.heinze
+#' permuteHeinze
 #'
 #' Perform single imputation and permutation step
 #'
@@ -73,7 +74,7 @@ impute.heinze <- function(data, pool=TRUE) {
 #' @references
 #' Heinze, G., Gnant, M. and Schemper, M. Exact Log-Rank Tests for Unequal Follow-Up. Biometrics, 59(4), December 2003.
 #' 
-permute.heinze <- function(imp, pp, index=TRUE) {
+permuteHeinze <- function(imp, pp, index=TRUE) {
     ## permute rows
     pdata <- imp$data[pp, ]
     

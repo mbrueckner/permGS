@@ -1,14 +1,15 @@
-#' impute.IPT
+#' imputeIPT
 #'
 #' Impute data according to IPT method. Output is supposed to be passed to permute.IPT
 #'
 #' @param data matrix as returned by as.matrix(generateData(param))
+#' @param pool if TRUE impute events times from pooled Kaplan-Meier estimator (default: TRUE)
 #'
 #' @return matrix containing imputed survival and censoring times (columns 1 and 2), and original treatment indicator (column 3)
 #' @references
 #' Wang, R., Lagakos, S.~W. and Gray, R.~J. Testing and interval estimation for two-sample survival comparisons with small sample sizes and unequal censoring. Biostatistics, 11(4), 676--692, January 2010.
 #'
-impute.IPT <- function(data, pool=TRUE) {
+imputeIPT <- function(data, pool=TRUE) {
     ## KM estimator from pooled data
     time <- data[,1]
     status <- data[,2]
@@ -70,7 +71,7 @@ impute.IPT <- function(data, pool=TRUE) {
     matrix(c(T, C, data[,3], Tdelta), nrow=nrow(data), ncol=4)
 }
 
-#' permute.IPT
+#' permuteIPT
 #'
 #' Permute survival times after imputation (IPT)
 #'
@@ -82,7 +83,7 @@ impute.IPT <- function(data, pool=TRUE) {
 #' @references
 #' Wang, R., Lagakos, S.~W. and Gray, R.~J. Testing and interval estimation for two-sample survival comparisons with small sample sizes and unequal censoring. Biostatistics, 11(4), 676--692, January 2010.
 #' 
-permute.IPT <- function(data, pp, index=TRUE) {
+permuteIPT <- function(data, pp, index=TRUE) {
     pT <- data[pp, 1]
     tmp <- matrix(c(pmin(pT, data[,2]), (pT <= data[,2]), data[,3]), nrow=nrow(data), ncol=3)
 
