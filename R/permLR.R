@@ -79,8 +79,8 @@ shuffleBlock <- function(block, strata=0) {
 #' @param restricted if TRUE only permute within strata
 #' @param method imputation/permuation method IPZ, IPT, Heinze or none (default: IPZ)
 #' @param pool if TRUE impute event times from Kaplan-Meier estimator calculated from pooled data
-#' @param imputeData user-supplied imputation function (ignored if IP.method is given)
-#' @param permuteData user-supplied permutation function (ignore if IP.method is given)
+#' @param imputeData user-supplied imputation function (ignored if method is given)
+#' @param permuteData user-supplied permutation function (ignore if method is given)
 #' @param type logrank weights to be used with coin::logrank_trafo
 #' @return object of class permGS
 #'
