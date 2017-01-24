@@ -20,9 +20,9 @@ createPermGS(B = 1000, restricted = TRUE, method = "IPZ", pool = TRUE,
 
 \item{type}{logrank weights to be used with coin::logrank_trafo}
 
-\item{imputeData}{user-supplied imputation function (ignored if IP.method is given)}
+\item{imputeData}{user-supplied imputation function (ignored if method is given)}
 
-\item{permuteData}{user-supplied permutation function (ignore if IP.method is given)}
+\item{permuteData}{user-supplied permutation function (ignore if method is given)}
 }
 \value{
 object of class permGS
@@ -33,7 +33,9 @@ Create permGS object representing a permutational group-sequential trial.
 \examples{
 ## standard permutation test (no imputation, free permutations)
 x <- createPermGS(1000, FALSE, "none")
+summary(x)
 ## imputation using IPT method, restricted permutations
 y <- createPermGS(1000, TRUE, "IPT")
+summary(y)
 }
 

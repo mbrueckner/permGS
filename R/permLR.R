@@ -87,8 +87,10 @@ shuffleBlock <- function(block, strata=0) {
 #' @examples
 #' ## standard permutation test (no imputation, free permutations)
 #' x <- createPermGS(1000, FALSE, "none")
+#' summary(x)
 #' ## imputation using IPT method, restricted permutations
 #' y <- createPermGS(1000, TRUE, "IPT")
+#' summary(y)
 #' @export
 createPermGS <- function(B=1000, restricted=TRUE, method="IPZ", pool=TRUE,
                          type=c("logrank", "Gehan-Breslow", "Tarone-Ware",
@@ -295,11 +297,12 @@ nextStage <- function(pgs.obj, alpha, formula, data=parent.frame()) {
 #' @param type logrank weights to be used with coin::logrank_trafo
 #' @return An object of class permGS
 #' @examples
-#' T <- rexp(100) ## event times
-#' Z <- rbinom(100, 1, 0.5)  ## treatment assignment
-#' C <- rexp(100) ## drop-out times
+#' T <- rexp(30) ## event times
+#' Z <- rbinom(30, 1, 0.5)  ## treatment assignment
+#' C <- rexp(30) ## drop-out times
 #' data <- data.frame(time=pmin(T,C), status=T<=C, Z=Z)
-#' permIPT(Surv(time, status) ~ Z, data)
+#' x <- permIPT(Surv(time, status) ~ Z, data)
+#' summary(x)
 #' @export
 permIPT <- function(formula, data, B=1000, alpha=0.05, pool=TRUE,
                     type=c("logrank", "Gehan-Breslow", "Tarone-Ware",
@@ -320,9 +323,9 @@ permIPT <- function(formula, data, B=1000, alpha=0.05, pool=TRUE,
 #' @param type logrank weights to be used with coin::logrank_trafo
 #' @return An object of class permGS
 #' @examples
-#' T <- rexp(100) ## event times
-#' Z <- rbinom(100, 1, 0.5)  ## treatment assignment
-#' C <- rexp(100) ## drop-out times
+#' T <- rexp(30) ## event times
+#' Z <- rbinom(30, 1, 0.5)  ## treatment assignment
+#' C <- rexp(30) ## drop-out times
 #' data <- data.frame(time=pmin(T,C), status=T<=C, Z=Z)
 #' x <- permIPZ(Surv(time, status) ~ Z, data)
 #' summary(x)
@@ -346,9 +349,9 @@ permIPZ <- function(formula, data, B=1000, alpha=0.05, pool=TRUE,
 #' @param type logrank weights to be used with coin::logrank_trafo
 #' @return An object of class permGS
 #' @examples
-#' T <- rexp(100) ## event times
-#' Z <- rbinom(100, 1, 0.5)  ## treatment assignment
-#' C <- rexp(100) ## drop-out times
+#' T <- rexp(30) ## event times
+#' Z <- rbinom(30, 1, 0.5)  ## treatment assignment
+#' C <- rexp(30) ## drop-out times
 #' data <- data.frame(time=pmin(T,C), status=T<=C, Z=Z)
 #' x <- permHeinze(Surv(time, status) ~ Z, data)
 #' summary(x)

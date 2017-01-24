@@ -59,7 +59,7 @@ imputeHeinze <- function(data, pool=TRUE) {
     ## interpolation of censoring KM in group 2
     f2 <- approxfun(fit2$time, fit2$surv, method="constant", yleft=1, rule=2, f=0)
 
-    list(fS1=fS1, fS2=fS2, f1=f1, f2=f2, fit1=fit1, fit2=fit2, tmax=tmax, g1=g1, g2=g2, data=data)
+    list(fS1=fS1, fS2=fS2, f1=f1, f2=f2, fitS1=fitS1, fitS2=fitS2, fit1=fit1, fit2=fit2, tmax=tmax, g1=g1, g2=g2, data=data)
 }
 
 #' permuteHeinze
