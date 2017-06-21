@@ -36,4 +36,3 @@ data <- data.frame(time=pmin(T,C), status=T<=C, Z=Z)
 x <- permHeinze(Surv(time, status) ~ Z, data)
 summary(x)
 }
-

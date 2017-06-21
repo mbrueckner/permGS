@@ -36,4 +36,3 @@ data <- data.frame(time=pmin(T,C), status=T<=C, Z=Z)
 x <- permIPT(Surv(time, status) ~ Z, data)
 summary(x)
 }
-

@@ -38,4 +38,3 @@ summary(x)
 y <- createPermGS(1000, TRUE, "IPT")
 summary(y)
 }
-

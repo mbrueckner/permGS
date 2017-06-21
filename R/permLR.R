@@ -32,7 +32,7 @@ exactLR <- function(B, formula, data=parent.frame(), type="exact") {
     trt <- data$trt
 
     ## calculate logrank scores
-    x <- logrank_trafo(matrix(c(data$time, data$status), ncol=2, nrow=nrow(data)))
+    x <- coin::logrank_trafo(Surv(data$time, data$status))
 
     ## centered logrank statistic
     obsS <- sum(x * trt)
@@ -118,7 +118,7 @@ createPermGS <- function(B=1000, restricted=TRUE, method="IPZ", pool=TRUE,
     } else method <- "user"
 
     ## calculation of (weighted) logrank scores
-    trafo <- function(data) coin::logrank_trafo(data, ties.method="mid-ranks", type=type)
+    trafo <- function(data) coin::logrank_trafo(Surv(data[,1], data[,2]), ties.method="mid-ranks", type=type)
 
     x <- list(method=method, pool=pool, imputeData=imputeData, permuteData=permuteData, type=type, trafo=trafo,
               B=B, restricted=restricted, S=matrix(nrow=B, ncol=0), perms=matrix(nrow=0, ncol=B), strata=NULL,

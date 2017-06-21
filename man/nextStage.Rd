@@ -51,4 +51,3 @@ if(!x$results$reject[1]) {
    summary(x)
 }
 }
-

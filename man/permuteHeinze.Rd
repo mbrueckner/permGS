@@ -22,4 +22,3 @@ Perform single imputation and permutation step
 \references{
 Heinze, G., Gnant, M. and Schemper, M. Exact Log-Rank Tests for Unequal Follow-Up. Biometrics, 59(4), December 2003.
 }
-

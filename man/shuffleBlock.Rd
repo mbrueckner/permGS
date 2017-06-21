@@ -19,4 +19,3 @@ random permutation of each stratum within block
 shuffleBlock
 Permute block preserving group sizes, randomization blocks
 }
-

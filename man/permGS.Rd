@@ -41,9 +41,6 @@ if(!x$results$reject[1]) { ## Stage 2
 }
 
 }
-\author{
-Matthias Brueckner \email{m.bruckner@lancaster.ac.uk}, Franz Koenig \email{Franz.Koenig@meduniwien.ac.at}, Martin Posch \email{martin.posch@meduniwien.ac.at}
-}
 \references{
 Brueckner, M., Koenig, F. and Posch, M. Group-sequential permutation tests for time-to-event data.
 
@@ -53,4 +50,6 @@ Wang, R., Lagakos, S.~W. and Gray, R.~J. Testing and interval estimation for two
 
 Kelly, P., Zhou, Y., Whitehead, N. J., Stallard, N. and Bowman, C. Sequentially testing for a gene–drug interaction in a genomewide analysis. Statistics in Medicine, 27(11), 2022--2034, May 2008.
 }
-
+\author{
+Matthias Brueckner \email{m.bruckner@lancaster.ac.uk}, Franz Koenig \email{Franz.Koenig@meduniwien.ac.at}, Martin Posch \email{martin.posch@meduniwien.ac.at}
+}

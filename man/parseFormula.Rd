@@ -17,4 +17,3 @@ data.frame containing the parsed variables
 \description{
 Parse formula of survival model
 }
-

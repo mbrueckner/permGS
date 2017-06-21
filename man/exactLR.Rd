@@ -41,4 +41,3 @@ y <- exactLR(0, Surv(time, status) ~ trt, data, "exact")
 print(paste("Exact permutation p-value:", y$p))
 
 }
-

@@ -23,4 +23,3 @@ Random sample of survival times drawn from conditional distribution of T given T
 \description{
 Sample from conditional distribution estimated by Kaplan-Meier estimator. Imputed values > tmax are right-censored.
 }
-

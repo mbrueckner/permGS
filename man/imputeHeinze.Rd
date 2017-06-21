@@ -20,4 +20,3 @@ Impute data according to Heinze et al. method. Output is supposed to be passed t
 \references{
 Heinze, G., Gnant, M. and Schemper, M. Exact Log-Rank Tests for Unequal Follow-Up. Biometrics, 59(4), December 2003.
 }
-

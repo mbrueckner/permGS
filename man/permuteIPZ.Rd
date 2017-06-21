@@ -22,4 +22,3 @@ Permute treatment assignment after imputation (IPZ)
 \references{
 Wang, R., Lagakos, S.~W. and Gray, R.~J. Testing and interval estimation for two-sample survival comparisons with small sample sizes and unequal censoring. Biostatistics, 11(4), 676--692, January 2010.
 }
-

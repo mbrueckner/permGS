@@ -23,4 +23,3 @@ Random sample of survival times
 \description{
 Sample from distribution estimated by Kaplan-Meier estimator. Imputed values > tmax are right-censored.
 }
-
