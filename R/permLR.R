@@ -42,10 +42,10 @@ exactLR <- function(B, formula, data=parent.frame(), type="exact") {
     if(type == "exact") { ## complete enumeration of all combinations
         co <- utils::combn(1:length(trt), sum(trt))
         S <- vapply(1:ncol(co), function(i) sum(x[co[,i]]), NA_real_)
-        p <- mean(S >= obsS)
+        p <- mean(S < obsS)
     } else if(type == "approximate") { ## Monte-Carlo sampling of permutation distribution
         S <- vapply(1:B, function(b) sum(x * sample(trt)), NA_real_)
-        p <- (sum(S >= obsS) + 1) / (B + 1)
+        p <- (sum(S < obsS) + 1) / (B + 1)
     } else if(type == "asymptotic") {
         fit <- survdiff(Surv(time, status) ~ trt, data=data)       
         Z <- -sqrt(fit$chisq) * sign(fit$obs[2] - fit$exp[2])
@@ -275,7 +275,8 @@ nextStage <- function(pgs.obj, alpha, formula, data=parent.frame()) {
     sdS <- sd(newS[is.finite(newS)])
        
     ## pvalue
-    p <- (sum(newS >= obsS) + 1)/(B + 1)
+    if(stage > 1) p <- NA
+    else p <- (sum(newS < obsS) + 1)/(B + 1)
 
     reject <- (obsS < cv.l) | (obsS > cv.u)
 
