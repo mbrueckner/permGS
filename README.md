@@ -5,6 +5,15 @@ are equal in the treatment and the control group and approximate imputation-perm
 censoring distributions are different. One- and two-sided testing is possible.
 
 ## Installation
+
+Get the released version from CRAN:
+
+```R
+install.packages("permGS")
+```
+
+Or the development version from github:
+
 ```R
 # install.packages("devtools")
 devtools::install_github("mbrueckner/permGS")
